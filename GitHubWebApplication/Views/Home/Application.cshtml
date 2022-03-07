@@ -1,0 +1,118 @@
+﻿@{
+    ViewBag.Title = "Application";
+}
+
+<h2>Show GitHub details</h2>
+<p>
+    Search by user name
+</p>
+<br/>
+<input id="username" />
+
+<button type="button" class="btn">Search</button>
+&nbsp;
+<label id="summarymessage">No user found</label>
+
+<table id="summarytable" class="table">
+    <thead class="thead-dark">
+        <tr>
+            <th>User name</th>
+            <th>Location</th>
+            <th>Image</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<label id="reposmessage">No repositories found</label>
+
+<table id="repostable" class="table table-striped"">
+    <thead class="thead-dark">
+        <tr>
+            <th>Repository name</th>
+            <th>Description</th>
+            <th>URL</th>
+            <th>Stargazers</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+        crossorigin="anonymous"></script>
+
+<script>
+
+    $(document).ready(function () {
+        $("#summarytable").hide()
+        $("#repostable").hide()
+        $("#summarymessage").hide()
+        $("#reposmessage").hide()
+        
+        $("button").click(function () {
+
+            $.ajax({
+                url: "/api/GitHub/Summary",
+                type: "GET",
+                data: { search: $('#username').val() },
+                datatype: "json",
+                success: function (response) {
+                    console.log(response.Name)
+                    console.log(response.Location)
+                    $("#summarymessage").hide()
+                    $("#reposmessage").hide()
+                    $("#summarytable tbody tr").remove()
+                    $("#summarytable").show()
+                        
+                    $("#summarytable tbody").append(`<tr><td>${response.Name}</td><td>${response.Location}</td>
+                        <td><img src="${response.Avatar}" width="100" height="100"></img></td></tr>`)
+
+                    var sortedarray = []
+
+                    $.ajax({
+                        url: "/api/GitHub/Repos",
+                        type: "GET",
+                        data: { search: $('#username').val() },
+                        datatype: "json",
+                        success: function (response) {
+                            $("#repostable tbody tr").remove()
+                            $("#repostable").show()
+
+                            sortedarray = response.sort(function (a, b) {
+                                return (b.stargazers_count) - a.stargazers_count;
+                            })
+
+                            if (sortedarray.length == 0) {
+                                $("#summarytable").show()
+                                $("#repostable").hide()
+                                $("#summarymessage").hide()
+                                $("#reposmessage").show()
+                            }
+                            else {
+                                sortedarray.slice(0, 5).forEach(function (item) {
+                                    $("#repostable tbody").append(`<tr><td>${item.name}</td><td>${item.description}</td>
+                                    <td>${item.git_url}</td><td>${item.stargazers_count}</td></tr>`)
+                                });
+                            }
+                        },
+                        error: (function () {
+                            $("#summarytable").show()
+                            $("#repostable").hide()
+                            $("#summarymessage").hide()
+                            $("#reposmessage").show()
+                        })
+
+                    })
+                },
+                error: (function () {
+                    $("#summarytable").hide()
+                    $("#reposmessage").hide()
+                    $("#repostable").hide()
+                    $("#summarymessage").show()
+                })
+            })
+        });
+    });
+
+</script>
